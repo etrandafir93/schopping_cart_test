@@ -4,7 +4,9 @@ import static java.math.BigDecimal.valueOf;
 import static org.demo.microservice.schoppingcart.schoppingcartapp.core.input.ProductCategory.TOYS;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
+import org.demo.microservice.schoppingcart.schoppingcartapp.Specification;
 import org.demo.microservice.schoppingcart.schoppingcartapp.core.output.MoneyAmount;
 
 public class ProductTestBuilder {
@@ -45,6 +47,13 @@ public class ProductTestBuilder {
 
     public ProductTestBuilder withCategory(ProductCategory category) {
         this.category = category;
+        return this;
+    }
+
+    public ProductTestBuilder withSellPrice(Optional<BigDecimal> sellPrice) {
+        if(sellPrice.isPresent()) {
+            this.sellPrice = sellPrice.get();
+        }
         return this;
     }
 }

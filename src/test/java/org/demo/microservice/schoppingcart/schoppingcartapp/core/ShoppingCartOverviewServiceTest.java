@@ -2,8 +2,17 @@ package org.demo.microservice.schoppingcart.schoppingcartapp.core;
 
 import static java.math.BigDecimal.valueOf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.demo.microservice.schoppingcart.schoppingcartapp.TotalInformationAssert.assertThatTotalInformation;
 import static org.demo.microservice.schoppingcart.schoppingcartapp.core.input.ProductCategory.TOYS;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
+
+import org.demo.microservice.schoppingcart.schoppingcartapp.Specification;
+import org.demo.microservice.schoppingcart.schoppingcartapp.TotalInformationAssert;
+import org.demo.microservice.schoppingcart.schoppingcartapp.core.input.Product;
 import org.demo.microservice.schoppingcart.schoppingcartapp.core.input.ProductCategory;
 import org.demo.microservice.schoppingcart.schoppingcartapp.core.input.ProductTestBuilder;
 import org.demo.microservice.schoppingcart.schoppingcartapp.core.input.ShoppingCartData;
@@ -108,8 +117,90 @@ class ShoppingCartOverviewServiceTest {
         assertThat(output.getTotals().getTotalAmountToBePaid().amount()).isEqualTo(valueOf(100.5));
         assertThat(output.getTotals().getTotalListPriceAmount().amount()).isEqualTo(valueOf(205.99));
         assertThat(output.getTotals().getTotalSellPriceAmount().amount()).isEqualTo(valueOf(100.5));
-//        assertThat(output.getTotals().getOverallDiscountAmountPercentage()).isEqualByComparingTo(valueOf(97.30));
     }
+
+    @Test
+    void customSpecs_forGivenPart_v1() {
+        //given
+        ShoppingCartData input = new ShoppingCartData();
+        input.setCustomerId("customer-1");
+        //and
+        Specification.from(List.of(
+                " last_price | sell_price | category | name",
+                " ==================================================",
+                " 5.99       | n/a        | BOOKS    | My first book",
+                " 100        | 100        | TOYS     | My first phone",
+                " 100        | 100        | TOYS     | My first toy"
+            )).stream()
+            .map(this::specToProduct)
+            .forEach(input::addProduct);
+
+        //when
+        ShoppingCartOverview output = shoppingCartOverviewService.generateShoppingCartOverview(input);
+
+        //then
+        assertThat(output).isNotNull();
+        assertThatTotalInformation(output.getTotals())
+            .hasTotalAmountToBePaid(valueOf(100.5d))
+            .hasTotalListPriceAmount(valueOf(205.99d))
+            .hasTotalSellPriceAmount(valueOf(100.5d));
+    }
+
+
+    private Product specToProduct(Specification.Row row) {
+        return new ProductTestBuilder()
+            .withName(row.get("name"))
+            .withListPrice(new BigDecimal(row.get("last_price")))
+            .withSellPrice(row.getIfApplicable("sell_price").map(BigDecimal::new))
+            .withCategory(ProductCategory.valueOf(row.get("category")))
+            .build();
+    }
+
+
+    @Test
+    void usingSpecsForGiven_andSpecsPlusCustomAssertForThenPart_v2() {
+        //given
+        ShoppingCartData input = new ShoppingCartData();
+        input.setCustomerId("customer-1");
+        //and
+        Specification.from(List.of(
+                " last_price | sell_price | category | name",
+                " ==================================================",
+                " 5.99       | n/a        | BOOKS    | My first book",
+                " 100        | 100        | TOYS     | My first phone",
+                " 100        | 100        | TOYS     | My first toy"
+            )).stream()
+            .map(this::specToProduct)
+            .forEach(input::addProduct);
+
+        //when
+        ShoppingCartOverview output = shoppingCartOverviewService.generateShoppingCartOverview(input);
+
+        //then
+        Specification.from(List.of(
+                " spec_key          | expected_value    ",
+                "=======================================",
+                " total_to_be_paid  | 100.5             ",
+                " total_list_price  | 205.99            ",
+                " total_sell_amount | 100.5             "
+            )).stream()
+            .forEach(row -> {
+                var tested = assertThatTotalInformation(output.getTotals());
+                var expectedValue = row.getBigDecimal("expected_value");
+                runDynamicTest(tested, row.get("spec_key"), expectedValue);
+            });
+    }
+
+    private void runDynamicTest(TotalInformationAssert tested, String specKey, BigDecimal expectedValue) {
+        specKeysToCustomAsserts.get(specKey).accept(tested, expectedValue);
+    }
+
+    private final Map<String, BiConsumer<TotalInformationAssert, Object>> specKeysToCustomAsserts = Map.of(
+        "total_to_be_paid", (tested, expectedOut) -> tested.hasTotalAmountToBePaid((BigDecimal) expectedOut),
+        "total_list_price", (tested, expectedOut) -> tested.hasTotalListPriceAmount((BigDecimal) expectedOut),
+        "total_sell_amount", (tested, expectedOut) -> tested.hasTotalSellPriceAmount((BigDecimal) expectedOut)
+    );
+
 
     @ComponentScan(value = {
             "org.demo.microservice.schoppingcart.schoppingcartapp.core" })

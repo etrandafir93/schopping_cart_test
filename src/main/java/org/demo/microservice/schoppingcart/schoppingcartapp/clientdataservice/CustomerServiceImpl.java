@@ -18,7 +18,7 @@ public class CustomerServiceImpl implements CustomerService {
     public CustomerData getCustomerData() {
 
         RestTemplate restTemplate = new RestTemplate();
-        var x = restTemplate.getForObject("http://localhost:8080/b2b/customer/customer-1", Object.class);
+//        var x = restTemplate.getForObject("http://localhost:8080/b2b/customer/customer-1", Object.class);
 
             return new CustomerData(List.of(new CategoryDiscount(ProductCategory.TOYS, BigDecimal.valueOf(0.5))));
 
