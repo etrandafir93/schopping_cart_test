@@ -35,17 +35,4 @@ public class TotalInformationAssert extends AbstractAssert<TotalInformationAsser
             .isEqualTo(expected);
         return this;
     }
-
-
-
-    // a bit more extreme, only needed for v2 :)
-    public TotalInformationAssert hasFieldWithValue(String specKey, Object expected) {
-        specKeysToCustomAsserts.get(specKey).apply(expected);
-        return this;
-    }
-    private final Map<String, Function<Object, TotalInformationAssert>> specKeysToCustomAsserts = Map.of(
-        "total_to_be_paid", (expected) -> this.hasTotalAmountToBePaid((BigDecimal) expected),
-        "total_list_price", (expected) -> this.hasTotalAmountToBePaid((BigDecimal) expected),
-        "total_sell_amount", (expected) -> this.hasTotalAmountToBePaid((BigDecimal) expected)
-    );
 }
