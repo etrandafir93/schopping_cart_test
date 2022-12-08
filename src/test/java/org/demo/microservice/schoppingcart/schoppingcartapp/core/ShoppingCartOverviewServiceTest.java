@@ -184,11 +184,13 @@ class ShoppingCartOverviewServiceTest {
                 " total_list_price  | 205.99            ",
                 " total_sell_amount | 100.5             "
             )).stream()
-            .forEach(row -> {
-                var tested = assertThatTotalInformation(output.getTotals());
-                var expectedValue = row.getBigDecimal("expected_value");
-                runDynamicTest(tested, row.get("spec_key"), expectedValue);
-            });
+            .forEach(specs -> runAgainstSpecifications(output, specs));
+    }
+
+    private void runAgainstSpecifications(ShoppingCartOverview output, Specification.Row row) {
+        var tested = assertThatTotalInformation(output.getTotals());
+        var expectedValue = row.getBigDecimal("expected_value");
+        runDynamicTest(tested, row.get("spec_key"), expectedValue);
     }
 
     private void runDynamicTest(TotalInformationAssert tested, String specKey, BigDecimal expectedValue) {
